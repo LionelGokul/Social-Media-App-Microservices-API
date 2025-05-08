@@ -1,0 +1,31 @@
+{
+  "compilerOptions": {
+    "baseUrl": "src",
+    "paths": {
+      "controllers/*": ["controllers/*"],
+      "models/*": ["models/*"]
+    },
+    "target": "ES2020", // which JS version to output
+    "module": "commonjs", // module system (for Node.js)
+    "rootDir": "./src", // where your .ts files live
+    "outDir": "./dist", // where compiled .js go
+    "strict": true, // enable all strict type checks
+    "esModuleInterop": true, // allow `import pkg from 'pkg'` for CommonJS
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true, // skip type-checking node_modules
+    "noImplicitAny": true, // prevent untyped `any`
+    "moduleResolution": "node",
+    "resolveJsonModule": true, // import .json files
+    "sourceMap": true, // generate .js.map for debugging
+    "typeRoots": [
+      "src/types", // ← add this
+      "node_modules/@types"
+    ]
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/types/**/*.d.ts", // ← and include your .d.ts files explicitly
+    "src/eventHandlers"
+  ], // files to compile
+  "exclude": ["node_modules", "dist"] // files to ignore
+}
