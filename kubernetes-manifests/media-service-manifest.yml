@@ -1,0 +1,66 @@
+---
+# create configmap
+# kubectl create configmap media-service-env  --from-env-file=../media-service/.env -n socialmediaapp
+
+#create secret
+# kubectl create secret generic media-service-secret --from-literal=JWT_SECRET="JWT_SECRET" -n socialmediaapp
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: media-service-deployment
+  namespace: socialmediaapp
+  labels:
+    serviceName: media-service
+    app: socialmediaapp
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { serviceName: media-service }
+  template:
+    metadata: { labels: { serviceName: media-service, app: socialmediaapp } }
+    spec:
+      containers:
+        - name: media-service
+          image: le098/socialmediaapp-media-service:latest
+          ports: [{ containerPort: 5003 }]
+          envFrom:
+            - configMapRef:
+                name: media-service-env
+            - secretRef:
+                name: media-service-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: media-service
+  namespace: socialmediaapp
+  labels:
+    serviceName: media-service
+    app: socialmediaapp
+spec:
+  selector: { serviceName: media-service }
+  ports: [{ port: 5003, targetPort: 5003 }]
+
+---
+# configuring auto scale
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: media-service-hpa
+  namespace: socialmediaapp
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: media-service-deployment
+  minReplicas: 1
+  maxReplicas: 3
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 50
+---
+

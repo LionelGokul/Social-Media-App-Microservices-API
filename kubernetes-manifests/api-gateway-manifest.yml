@@ -1,0 +1,66 @@
+---
+# create configmap
+# kubectl create configmap api-gateway-env  --from-env-file=../api-gateway/.env -n socialmediaapp
+
+#create secret
+# kubectl create secret generic api-gateway-secret --from-literal=JWT_SECRET="JWT_SECRET" -n socialmediaapp
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway-deployment
+  namespace: socialmediaapp
+  labels:
+    serviceName: api-gateway
+    app: socialmediaapp
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { serviceName: api-gateway }
+  template:
+    metadata: { labels: { serviceName: api-gateway, app: socialmediaapp } }
+    spec:
+      containers:
+        - name: api-gateway
+          image: le098/socialmediaapp-api-gateway:latest
+          ports: [{ containerPort: 5000 }]
+          envFrom:
+            - configMapRef:
+                name: api-gateway-env
+            - secretRef:
+                name: api-gateway-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-gateway-service
+  namespace: socialmediaapp
+  labels:
+    serviceName: api-gateway
+    app: socialmediaapp
+spec:
+  selector: { serviceName: api-gateway }
+  ports: [{ port: 5000, targetPort: 5000 }]
+
+---
+# configuring auto scale
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: api-gateway-hpa
+  namespace: socialmediaapp
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: api-gateway-deployment
+  minReplicas: 1
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 50
+---
+

@@ -1,0 +1,66 @@
+---
+# create configmap
+# kubectl create configmap search-service-env  --from-env-file=../search-service/.env -n socialmediaapp
+
+#create secret
+# kubectl create secret generic search-service-secret --from-literal=JWT_SECRET="JWT_SECRET" -n socialmediaapp
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: search-service-deployment
+  namespace: socialmediaapp
+  labels:
+    serviceName: search-service
+    app: socialmediaapp
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { serviceName: search-service }
+  template:
+    metadata: { labels: { serviceName: search-service, app: socialmediaapp } }
+    spec:
+      containers:
+        - name: search-service
+          image: le098/socialmediaapp-search-service:latest
+          ports: [{ containerPort: 5004 }]
+          envFrom:
+            - configMapRef:
+                name: search-service-env
+            - secretRef:
+                name: search-service-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: search-service
+  namespace: socialmediaapp
+  labels:
+    serviceName: search-service
+    app: socialmediaapp
+spec:
+  selector: { serviceName: search-service }
+  ports: [{ port: 5004, targetPort: 5004 }]
+
+---
+# configuring auto scale
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: search-service-hpa
+  namespace: socialmediaapp
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: search-service-deployment
+  minReplicas: 1
+  maxReplicas: 3
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 50
+---
+

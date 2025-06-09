@@ -1,0 +1,66 @@
+---
+# create configmap
+# kubectl create configmap post-service-env  --from-env-file=../post-service/.env -n socialmediaapp
+
+#create secret
+# kubectl create secret generic post-service-secret --from-literal=JWT_SECRET="JWT_SECRET" -n socialmediaapp
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: post-service-deployment
+  namespace: socialmediaapp
+  labels:
+    serviceName: post-service
+    app: socialmediaapp
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { serviceName: post-service }
+  template:
+    metadata: { labels: { serviceName: post-service, app: socialmediaapp } }
+    spec:
+      containers:
+        - name: post-service
+          image: le098/socialmediaapp-post-service:latest
+          ports: [{ containerPort: 5002 }]
+          envFrom:
+            - configMapRef:
+                name: post-service-env
+            - secretRef:
+                name: post-service-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: post-service
+  namespace: socialmediaapp
+  labels:
+    serviceName: post-service
+    app: socialmediaapp
+spec:
+  selector: { serviceName: post-service }
+  ports: [{ port: 5002, targetPort: 5002 }]
+
+---
+# configuring auto scale
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: post-service-hpa
+  namespace: socialmediaapp
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: post-service-deployment
+  minReplicas: 1
+  maxReplicas: 3
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 50
+---
+
