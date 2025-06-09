@@ -7,20 +7,40 @@ let conn: any = null;
 let channel: any = null;
 const exchangeName = "social_events";
 
+const MAX_RETRIES = 10;
+const RETRY_DELAY = 2000;
+
 const ensureChannel = async (): Promise<any> => {
   if (channel) return channel;
 
-  const url = process.env.RABBITMQ_URL;
-  if (!url) {
-    logger.error("RABBITMQ_URL is not defined");
-    throw new Error("RABBITMQ_URL is not defined");
-  }
+  let connectionErr: Error | null = null;
+  for (let i = 1; i <= MAX_RETRIES; i++) {
+    try {
+      const url = process.env.RABBITMQ_URL;
+      if (!url) {
+        logger.error("RABBITMQ_URL is not defined");
+        throw new Error("RABBITMQ_URL is not defined");
+      }
 
-  conn = await amqp.connect(url);
-  channel = await conn.createChannel();
-  await channel.assertExchange(exchangeName, "topic", { durable: false });
-  logger.info("Connected to RabbitMQ");
-  return channel;
+      conn = await amqp.connect(url);
+      channel = await conn.createChannel();
+      await channel.assertExchange(exchangeName, "topic", { durable: false });
+      logger.info("Connected to RabbitMQ");
+      return channel;
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      connectionErr = error;
+      console.warn(
+        `RabbitMQ connect ${i}/${MAX_RETRIES} failed; retrying in ${RETRY_DELAY}ms`
+      );
+      await new Promise((r) => setTimeout(r, RETRY_DELAY));
+    }
+  }
+  logger.error(
+    "Failed to connect to RabbitMQ after multiple attempts",
+    connectionErr
+  );
+  throw connectionErr ?? new Error("Unknown RabbitMQ connection error");
 };
 
 export const publishEvent = async (

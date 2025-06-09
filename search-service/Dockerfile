@@ -1,7 +1,22 @@
 FROM node:22-alpine
-WORKDIR /use/src/app
+
+# Set working directory
+WORKDIR /usr/src/app
+
+# Copy package.json and lock file
 COPY package*.json ./
-RUN npm ci --only=production
+
+# Install all dependencies including devDependencies to allow build
+RUN npm install
+
+# Copy the rest of the app
 COPY . .
+
+# Compile TypeScript
+RUN npm run build
+
+# Expose the port your app listens on
 EXPOSE 5004
-CMD [ "node", "src/app.js" ]
+
+# Start the app
+CMD ["node", "dist/app.js"]

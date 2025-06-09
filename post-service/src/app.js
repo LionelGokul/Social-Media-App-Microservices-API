@@ -8,7 +8,7 @@ const postRoutes = require("./routes/post-route");
 const errorHandler = require("./middlewares/errorHandler-middleware");
 
 const logger = require("./utils/logger");
-const { connectRabbitMQ } = require("./utils/rabbitmq");
+const { connectRabbitMQ } = require("./utils/rabbitMQ");
 
 mongoose
   .connect(process.env.MONGODB_URI)

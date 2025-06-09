@@ -26,7 +26,7 @@ const rateLimiter = rateLimit({
   legacyHeaders: false,
   handler: (req, res) => {
     logger.warn("Sensitive endpoint rate limit exceeded", req);
-    res.status(429).statusMessage("Too Many Requests!!!");
+    res.status(429).send("Too Many Requests!!!");
   },
   store: new RedisStore({
     sendCommand: (...args) => redisClient.call(...args),
